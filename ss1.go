@@ -11,31 +11,48 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
+	"strings"
 )
 
 type CreateDBFunc func(string)
-type StockPrice struct {
+
+type StockHist struct {
 	symbol string
+	//volume int
 	price  float64
 }
 
 func main() {
-    symbols, err := readLines("test-symbols.txt")
+    symbols, err := readLines("stocks-testing.txt")
   	if err != nil {
-    log.Fatalf("readLines error reading: %s", err)
+    	log.Fatalf("readLines error reading: %s", err)
   }
   	for _, symbol := range symbols {
-    fmt.Println(symbol)
+   	//fmt.Println(symbol)
 
     var cdb CreateDBFunc
     cdb = createDB
     cdb(symbol)
   
-  year := 2009
-  closingPrice, err := getYahooInfo(symbol, year)
+  	t := time.Now().Format("2006-01-02")
+	tArray := strings.Split(t, "-")
+ 	
+ 	nowyear := tArray[0]
+ 	nowmonth := tArray[1]
+ 	nowday := tArray[2]
+ 
+  	thenyear := 2014
+  	thenmonth := 00
+  	thenday := 01
+
+  	results, err := getYahooInfo(symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
 		if err == nil {
-			fmt.Println(closingPrice)
+			//results = append(results, closingPrice)
+			fmt.Println(results)
 		}
+  	
+
   }  
 }
 
@@ -57,27 +74,6 @@ func createDB(s string) {
     }
 }
 
-func getYahooInfo(symbol string, year int) (StockPrice, error) {
-	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=11&b=01&c=%d&d=11&e=31&f=%d&g=m",
-		symbol, year, year)
-	resp, err := http.Get(url)
-	if err != nil {
-		return StockPrice{}, errors.New(fmt.Sprintf("Error making an HTTP request for stock %s.", symbol))
-	}
-	defer resp.Body.Close()
-	csvReader := csv.NewReader(resp.Body)
-	records, err2 := csvReader.ReadAll()
-	if err2 != nil {
-		return StockPrice{}, errors.New(fmt.Sprintf("Error parsing CSV values for stock %s.", symbol))
-	}
-	closingPrice, err3 := strconv.ParseFloat(records[1][4], 64)
-	if err3 != nil {
-		return StockPrice{}, err3
-	}
-	return StockPrice{symbol, closingPrice}, nil
-}
-
-
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
   if err != nil {
@@ -92,6 +88,56 @@ func readLines(path string) ([]string, error) {
   }
   return lines, scanner.Err()
 }
+
+func getYahooInfo(symbol string, thenmonth int, thenday int, thenyear int, nowmonth string, nowday string, nowyear string) (StockHist, error) {
+	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%d&c=%d&d=%s&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
+	resp, err := http.Get(url)
+	if err != nil {
+		return StockHist{}, errors.New(fmt.Sprintf("Error making an HTTP request for stock %s.", symbol))
+	}
+	defer resp.Body.Close()
+	csvReader := csv.NewReader(resp.Body)
+	records, err2 := csvReader.ReadAll()
+	if err2 != nil {
+		return StockHist{}, errors.New(fmt.Sprintf("Error parsing CSV values for stock %s.", symbol))
+	}
+	closingPrice, err3 := strconv.ParseFloat(records[1][4], 64)
+	if err3 != nil {
+		return StockHist{}, err3
+	}
+	return StockHist{symbol, closingPrice}, nil
+}
+
+
+// func getYahooInfo(symbol string, thenmonth int, thenday int, thenyear int, nowmonth string, nowday string, nowyear string) (StockPrice, error) {
+// 	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%d&c=%d&d=%s&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
+// 	resp, err := http.Get(url)
+// 	if err != nil {
+// 		return StockPrice{}, errors.New(fmt.Sprintf("Error making an HTTP request for stock %s.", symbol))
+// 	}
+// 	defer resp.Body.Close()
+// 	csvReader := csv.NewReader(resp.Body)
+// 	records, err2 := csvReader.ReadAll()
+// 	//fmt.Println(records)
+// 	if err2 != nil {
+// 		return StockPrice{}, errors.New(fmt.Sprintf("Error parsing CSV values for stock %s.", symbol))
+// 	}
+
+// 	// for key, record := range records {
+//  //   	fmt.Println(key, record)
+//  //   	}
+//    	//closingPrice, err3 := strconv.ParseFloat(records[1][4], 64)
+//    	for goodrecords, err3 := range records {
+// 	if err3 != nil {
+// 		return StockPrice{}, err3
+// 	}
+// 	//return StockPrice{symbol, closingPrice}, nil
+// 	return StockPrice{goodrecords}, nil
+// 	}
+// }
+
+
+
 
 
 
