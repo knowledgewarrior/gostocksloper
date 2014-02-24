@@ -102,6 +102,7 @@ func getYahooInfo(symbol string, thenmonth int, thenday int, thenyear int, nowmo
 		return StockHist{}, errors.New(fmt.Sprintf("Error parsing CSV values for stock %s.", symbol))
 	}
 	closingPrice, err3 := strconv.ParseFloat(records[1][4], 64)
+	//closingPrice := strconv.ParseFloat(records[1], 64)
 	if err3 != nil {
 		return StockHist{}, err3
 	}
