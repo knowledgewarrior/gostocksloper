@@ -26,6 +26,10 @@ func main() {
 	//fmt.Println(records)
 
 	for _, record := range records {
-   	fmt.Println(record)
+   	//fmt.Println(record)
+   	d := record[0]
+   	c := record[4]
+   	v := record[5]
+   	fmt.Println(d,c,v)
    }
 }
