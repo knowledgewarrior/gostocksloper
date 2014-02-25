@@ -36,6 +36,27 @@ func main() {
 		   	c := record[4]
 		   	v := record[5]
 		   	fmt.Println(d,c,v)
+
+		   	db, err := sql.Open("sqlite3", symbol+".db")
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer db.Close()
+
+				tx, err := db.Begin()
+				if err != nil {
+					log.Fatal(err)
+				}
+				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,close,volume) values(?,?,?)")
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer insert_stmt.Close()
+					_, err = insert_stmt.Exec(d,c,v)
+					if err != nil {
+						log.Fatal(err)
+					}
+				tx.Commit()
 		}
   	}  
 }
@@ -101,30 +122,6 @@ func getYahooInfo(symbol string) ([][]string, error){
 	return records, nil
 }
 
-
-func insertHistData(s string, d string, c string, v string) {
-	db, err := sql.Open("sqlite3", s+".db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,close,volume) values(?,?,?)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer insert_stmt.Close()
-		_, err = insert_stmt.Exec(d,c,v)
-		if err != nil {
-			log.Fatal(err)
-		}
-	tx.Commit()
-	
-}
 
 	
 
