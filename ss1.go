@@ -14,7 +14,7 @@ import (
 )
 
 type CreateDBFunc func(string)
-type InsertDBFunc func(string)
+type GetXYFunc func(string)
 
 func main() {
     symbols, err := readLines("stocks-testing.txt")
@@ -35,7 +35,7 @@ func main() {
 			d := record[0]
 		   	c := record[4]
 		   	v := record[5]
-		   	fmt.Println(d,c,v)
+		   	//fmt.Println(d,c,v)
 
 		   	db, err := sql.Open("sqlite3", symbol+".db")
 				if err != nil {
@@ -47,7 +47,7 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,close,volume) values(?,?,?)")
+				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice,volume) values(?,?,?)")
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -58,7 +58,12 @@ func main() {
 					}
 				tx.Commit()
 		}
-  	}  
+  	}
+  	for _, symbol := range symbols {
+  		var gxy GetXYFunc
+		gxy = getXY
+		gxy(symbol)
+	}  
 }
 
 func createDB(s string) {
@@ -69,7 +74,7 @@ func createDB(s string) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, volume INTEGER, close, INTEGER);")
+	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, volume INTEGER, closeprice INTEGER);")
     if err != nil {
         log.Fatalln("could not create table:", err)
     }
@@ -123,6 +128,25 @@ func getYahooInfo(symbol string) ([][]string, error){
 }
 
 
-	
+func getXY(s string) {
+	db, err := sql.Open("sqlite3", s+".db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	rows, err := db.Query("select id, closeprice from stockhistory order by ydate desc;")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var id int
+			var closeprice float64
+			rows.Scan(&id, &closeprice)
+			fmt.Println(id, closeprice)
+		}
+		rows.Close()
+}
+
 
 
