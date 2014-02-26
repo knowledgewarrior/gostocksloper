@@ -165,8 +165,11 @@ func getSlope(s string) {
 		//if ((slope >= -0.001) && (slope <= 0.001)) {
 			if ((slope >= -0.001) && (slope <= 0.1)) {
 				fmt.Println(s,slope)
-			}	
-
+			}
+			// else if (ntd <=35) {
+			// ntd++
+			// getSlope(s, ntd)	
+			// }
 		}
 		rows.Close()
 }
