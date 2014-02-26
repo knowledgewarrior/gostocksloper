@@ -14,7 +14,7 @@ import (
 )
 
 type CreateDBFunc func(string)
-type GetXYFunc func(string)
+type GetSlopeFunc func(string)
 
 func main() {
     symbols, err := readLines("stocks-testing.txt")
@@ -59,10 +59,11 @@ func main() {
 				tx.Commit()
 		}
   	}
+
   	for _, symbol := range symbols {
-  		var gxy GetXYFunc
-		gxy = getXY
-		gxy(symbol)
+  		var gsf GetSlopeFunc
+		gsf = getSlope
+		gsf(symbol)
 	}  
 }
 
@@ -128,22 +129,25 @@ func getYahooInfo(symbol string) ([][]string, error){
 }
 
 
-func getXY(s string) {
+func getSlope(s string) {
 	db, err := sql.Open("sqlite3", s+".db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	rows, err := db.Query("select id, closeprice from stockhistory order by ydate desc;")
+	rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit 5);")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var id int
-			var closeprice float64
-			rows.Scan(&id, &closeprice)
-			fmt.Println(id, closeprice)
+			var sumx float64
+			var sumy float64
+			var sumxy float64
+			var sumxx float64
+			rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
+			
+			fmt.Println(sumx, sumy, sumxy, sumxx)
 		}
 		rows.Close()
 }
