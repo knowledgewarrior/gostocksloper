@@ -1,3 +1,9 @@
+/*
+Jason Fowler February 2014
+Linear Regression Analysis of Yahoo Stock Data using formula:
+Slope(b) = (N*ΣXY - (ΣX)(ΣY)) / (N*ΣX2 - (ΣX)2)
+*/
+
 package main
 
 import (
@@ -147,7 +153,20 @@ func getSlope(s string) {
 			var sumxx float64
 			rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 			
-			fmt.Println(sumx, sumy, sumxy, sumxx)
+			//fmt.Println(sumx, sumy, sumxy, sumxx)
+
+			ntd := 5.00
+			ntdsumxy := ntd * sumxy
+			sumxsumy := sumx * sumy
+			ntdsumxx := ntd * sumxx
+			sumxsumx := sumx * sumx
+
+			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
+		//if ((slope >= -0.001) && (slope <= 0.001)) {
+			if ((slope >= -0.001) && (slope <= 0.1)) {
+				fmt.Println(s,slope)
+			}	
+
 		}
 		rows.Close()
 }
