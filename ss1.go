@@ -29,10 +29,10 @@ func main() {
   	}
   	for _, symbol := range symbols {
 
-	   	var cdb CreateDBFunc
-	    cdb = createDB
-	    cdb(symbol)
-	  
+	   var cdb CreateDBFunc
+	   cdb = createDB
+	   cdb(symbol)
+
 	  	records, err := getYahooInfo(symbol)
 	  	if err != nil {
 	    	log.Fatalf("cannot get yahoo info for: %s", err)
@@ -70,7 +70,7 @@ func main() {
   		var gsf GetSlopeFunc
 		gsf = getSlope
 		gsf(symbol)
-	}  
+	}
 }
 
 func createDB(s string) {
@@ -110,11 +110,11 @@ func getYahooInfo(symbol string) ([][]string, error){
 
 	t := time.Now().Format("2006-01-02")
 	tArray := strings.Split(t, "-")
- 	
+
  	nowyear := tArray[0]
  	nowmonth := tArray[1]
  	nowday := tArray[2]
- 
+
   	thenyear := 2014
   	thenmonth := 00
   	thenday := 01
@@ -130,18 +130,21 @@ func getYahooInfo(symbol string) ([][]string, error){
 	if err != nil {
 		log.Fatalf("error reading csv: %s", err)
 	}
-	records = append(records[:0], records[0+1:]...) 
+	records = append(records[:0], records[0+1:]...)
 	return records, nil
 }
 
 
 func getSlope(s string) {
+
+      ntd := 5.00
+
 	db, err := sql.Open("sqlite3", s+".db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit 5);")
+	rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -152,10 +155,10 @@ func getSlope(s string) {
 			var sumxy float64
 			var sumxx float64
 			rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
-			
+
 			//fmt.Println(sumx, sumy, sumxy, sumxx)
 
-			ntd := 5.00
+
 			ntdsumxy := ntd * sumxy
 			sumxsumy := sumx * sumy
 			ntdsumxx := ntd * sumxx
@@ -168,7 +171,7 @@ func getSlope(s string) {
 			}
 			// else if (ntd <=35) {
 			// ntd++
-			// getSlope(s, ntd)	
+			// getSlope(s, ntd)
 			// }
 		}
 		rows.Close()
