@@ -17,32 +17,32 @@ import (
 	"net/http"
 	"time"
 	"strings"
+      "github.com/wsxiaoys/terminal/color"
 )
 
 type CreateDBFunc func(string)
 type GetSlopeFunc func(string)
 
 func main() {
-    symbols, err := readLines("stocks-testing.txt")
+    // symbols, err := readLines("stocks-testing.txt") // very small
+    symbols, err := readLines("testsymbols.txt") // 1649 symbols
   	if err != nil {
     	log.Fatalf("readLines error reading: %s", err)
   	}
   	for _, symbol := range symbols {
-
-	   var cdb CreateDBFunc
+         var cdb CreateDBFunc
 	   cdb = createDB
 	   cdb(symbol)
-
+   }
+          for _, symbol := range symbols {
 	  	records, err := getYahooInfo(symbol)
 	  	if err != nil {
 	    	log.Fatalf("cannot get yahoo info for: %s", err)
 	  	}
-	  	for _, record := range records {
+	  	  for _, record := range records {
 			d := record[0]
 		   	c := record[4]
 		   	v := record[5]
-		   	//fmt.Println(d,c,v)
-
 		   	db, err := sql.Open("sqlite3", symbol+".db")
 				if err != nil {
 					log.Fatal(err)
@@ -63,14 +63,16 @@ func main() {
 						log.Fatal(err)
 					}
 				tx.Commit()
-		}
-  	}
+		  }
+        }
+
 
   	for _, symbol := range symbols {
   		var gsf GetSlopeFunc
 		gsf = getSlope
 		gsf(symbol)
 	}
+
 }
 
 func createDB(s string) {
@@ -128,7 +130,9 @@ func getYahooInfo(symbol string) ([][]string, error){
 	csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatalf("error reading csv: %s", err)
+            color.Print("error reading csv: %s", err)
+		//log.Fatalf("error reading csv: %s", err)
+            return
 	}
 	records = append(records[:0], records[0+1:]...)
 	return records, nil
@@ -136,9 +140,7 @@ func getYahooInfo(symbol string) ([][]string, error){
 
 
 func getSlope(s string) {
-
-      ntd := 5.00
-
+      ntd := 35.00
 	db, err := sql.Open("sqlite3", s+".db")
 	if err != nil {
 		log.Fatal(err)
@@ -156,9 +158,6 @@ func getSlope(s string) {
 			var sumxx float64
 			rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
-			//fmt.Println(sumx, sumy, sumxy, sumxx)
-
-
 			ntdsumxy := ntd * sumxy
 			sumxsumy := sumx * sumy
 			ntdsumxx := ntd * sumxx
@@ -168,6 +167,7 @@ func getSlope(s string) {
 		//if ((slope >= -0.001) && (slope <= 0.001)) {
 			if ((slope >= -0.001) && (slope <= 0.1)) {
 				fmt.Println(s,slope)
+                        //ch <- true
 			}
 			// else if (ntd <=35) {
 			// ntd++
