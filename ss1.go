@@ -25,7 +25,7 @@ type GetSlopeFunc func(string)
 
 func main() {
     // symbols, err := readLines("stocks-testing.txt") // very small
-    symbols, err := readLines("testsymbols.txt") // 1649 symbols
+    symbols, err := readLines("stocks-testing.txt") // 1649 symbols
   	if err != nil {
     	log.Fatalf("readLines error reading: %s", err)
   	}
@@ -132,7 +132,6 @@ func getYahooInfo(symbol string) ([][]string, error){
 	if err != nil {
             color.Print("error reading csv: %s", err)
 		//log.Fatalf("error reading csv: %s", err)
-            return
 	}
 	records = append(records[:0], records[0+1:]...)
 	return records, nil
@@ -164,15 +163,10 @@ func getSlope(s string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-		//if ((slope >= -0.001) && (slope <= 0.001)) {
-			if ((slope >= -0.001) && (slope <= 0.1)) {
-				fmt.Println(s,slope)
-                        //ch <- true
-			}
-			// else if (ntd <=35) {
-			// ntd++
-			// getSlope(s, ntd)
-			// }
+                  fmt.Println(s,slope)
+		    //   if ((slope >= -0.001) && (slope <= 0.001)) {
+			   // fmt.Println(s,slope)
+      //              }
 		}
 		rows.Close()
 }
