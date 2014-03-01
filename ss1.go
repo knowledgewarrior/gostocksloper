@@ -43,6 +43,8 @@ func main() {
 			d := record[0]
 		   	c := record[4]
 		   	v := record[5]
+                fmt.Println(d,c,v)
+                fmt.Println("\n")
 		   	db, err := sql.Open("sqlite3", symbol+".db")
 				if err != nil {
 					log.Fatal(err)
@@ -130,7 +132,7 @@ func getYahooInfo(symbol string) ([][]string, error){
 	csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-            color.Print("error reading csv: %s", err)
+            color.Print("@gerror reading csv: %s", err)
 		//log.Fatalf("error reading csv: %s", err)
 	}
 	records = append(records[:0], records[0+1:]...)
@@ -164,9 +166,6 @@ func getSlope(s string) {
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
                   fmt.Println(s,slope)
-		    //   if ((slope >= -0.001) && (slope <= 0.001)) {
-			   // fmt.Println(s,slope)
-      //              }
 		}
 		rows.Close()
 }
