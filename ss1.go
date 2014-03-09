@@ -20,6 +20,7 @@ import (
 
 
 type GetStocksFunc func(string)
+type GetSlopeFunc func(string)
 
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
@@ -53,23 +54,10 @@ func getStocks(symbol string) {
 	resp, err := http.Get(url)
 	if resp.StatusCode != 200 {
 		fmt.Println(symbol+": error with http response code")
-
-		// need to break out of function here is not 200 statuscode from yahoo
 		return
 	}
 
-	defer resp.Body.Close()
-	
-	csvReader := csv.NewReader(resp.Body)
-	records, err := csvReader.ReadAll()
-	if err != nil {
-          fmt.Println(symbol+" error reading csv")
-	}
-	records = append(records[:0], records[0+1:]...)
-		for _, record := range records {
-			d := record[0]
-		   	c := record[4]
-			os.Remove(symbol+".db")
+	os.Remove(symbol+".db")
 		    db, err := sql.Open("sqlite3", symbol+".db")
 			if err != nil {
 				fmt.Println("error opening db")
@@ -83,6 +71,19 @@ func getStocks(symbol string) {
 		    if err != nil {
 		        fmt.Println("could not create table")
 		    }
+
+	defer resp.Body.Close()
+	
+	csvReader := csv.NewReader(resp.Body)
+	records, err := csvReader.ReadAll()
+	if err != nil {
+          fmt.Println(symbol+" error reading csv")
+	}
+	records = append(records[:0], records[0+1:]...)
+		for _, record := range records {
+			d := record[0]
+		   	c := record[4]
+			
 			tx, err := db.Begin()
 				if err != nil {
 					fmt.Println("error with db")
@@ -93,37 +94,43 @@ func getStocks(symbol string) {
 			_, err = insert_stmt.Exec(d,c)
 			tx.Commit()
 		}
-
-// get slope
-	// ntd := 35.00
-	// db, err := sql.Open("sqlite3", s+".db")
-	// if err != nil {
-	// 	fmt.Println("error opening db")
-	// }
-	// defer db.Close()
-	// rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
-	// 	if err != nil {
-	// 		fmt.Println("error with select")
-	// 	}
-	// 	defer rows.Close()
-	// 	for rows.Next() {
-	// 		var sumx float64
-	// 		var sumy float64
-	// 		var sumxy float64
-	// 		var sumxx float64
-	// 		rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
-
-	// 		ntdsumxy := ntd * sumxy
-	// 		sumxsumy := sumx * sumy
-	// 		ntdsumxx := ntd * sumxx
-	// 		sumxsumx := sumx * sumx
-
-	// 		slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
- //                  fmt.Println(s,slope)
-	// 	}
-	// 	rows.Close()
+		
+		var gsf GetSlopeFunc
+		gsf = getSlope
+		gsf(symbol)
 
 } // getStocks
+
+func getSlope(symbol string) {
+	//get slope
+	ntd := 35.00
+	db, err := sql.Open("sqlite3", symbol+".db")
+	if err != nil {
+		fmt.Println("error opening db")
+	}
+	defer db.Close()
+	rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
+		if err != nil {
+			fmt.Println("error with select")
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var sumx float64
+			var sumy float64
+			var sumxy float64
+			var sumxx float64
+			rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
+
+			ntdsumxy := ntd * sumxy
+			sumxsumy := sumx * sumy
+			ntdsumxx := ntd * sumxx
+			sumxsumx := sumx * sumx
+
+			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
+                  fmt.Println(symbol,slope)
+		}
+		rows.Close()
+} //getSlope
 
 func main(){
 	symbols, err := readLines("testsymbols.txt") 
@@ -137,8 +144,14 @@ func main(){
 	 	gsf = getStocks
 	 	gsf(symbol)
 	}
+	// if db exists, find slope
+ //  	for _, symbol := range symbols {
+	// 	var gsf GetSlopeFunc
+	// 	gsf = getSlope
+	// 	gsf(symbol)
+	// }
      
-}
+} // func main
 
 
 
