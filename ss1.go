@@ -37,6 +37,12 @@ func readLines(path string) ([]string, error) {
   return lines, scanner.Err()
 }
 
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
+}
+
 func getStocks(symbol string) {
     
     t := time.Now().Format("2006-01-02")
@@ -94,7 +100,7 @@ func getStocks(symbol string) {
 			_, err = insert_stmt.Exec(d,c)
 			tx.Commit()
 		}
-		
+
 		var gsf GetSlopeFunc
 		gsf = getSlope
 		gsf(symbol)
@@ -127,7 +133,18 @@ func getSlope(symbol string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-                  fmt.Println(symbol,slope)
+            fmt.Println(symbol,slope)
+		    f, err := os.Create("Slopes.csv")
+		    check(err)
+			defer f.Close()
+			var data = []byte{}{
+				symbol,
+				",",
+				slope,
+			}
+			n2, err := f.Write(data)
+    		check(err)
+
 		}
 		rows.Close()
 } //getSlope
