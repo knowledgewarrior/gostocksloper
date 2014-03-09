@@ -17,15 +17,14 @@ import (
 	"net/http"
 	"time"
 	"strings"
-      "github.com/wsxiaoys/terminal/color"
 )
 
 type CreateDBFunc func(string)
 type GetSlopeFunc func(string)
 
 func main() {
-    // symbols, err := readLines("stocks-testing.txt") // very small
-    symbols, err := readLines("stocks-testing.txt") // 1649 symbols
+    symbols, err := readLines("testsymbols.txt") // very small
+    //symbols, err := readLines("stocks-testing.txt") // 1649 symbols
   	if err != nil {
     	log.Fatalf("readLines error reading: %s", err)
   	}
@@ -37,14 +36,12 @@ func main() {
           for _, symbol := range symbols {
 	  	records, err := getYahooInfo(symbol)
 	  	if err != nil {
-	    	log.Fatalf("cannot get yahoo info for: %s", err)
+	    	panic(symbol+": cannot get yahoo info")
 	  	}
 	  	  for _, record := range records {
 			d := record[0]
 		   	c := record[4]
-		   	v := record[5]
-                fmt.Println(d,c,v)
-                fmt.Println("\n")
+               // fmt.Println(d,c)
 		   	db, err := sql.Open("sqlite3", symbol+".db")
 				if err != nil {
 					log.Fatal(err)
@@ -55,12 +52,12 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice,volume) values(?,?,?)")
+				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
 				if err != nil {
 					log.Fatal(err)
 				}
 				defer insert_stmt.Close()
-					_, err = insert_stmt.Exec(d,c,v)
+					_, err = insert_stmt.Exec(d,c)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -85,7 +82,7 @@ func createDB(s string) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, volume INTEGER, closeprice INTEGER);")
+	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
     if err != nil {
         log.Fatalln("could not create table:", err)
     }
@@ -125,15 +122,17 @@ func getYahooInfo(symbol string) ([][]string, error){
 
 	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%d&c=%d&d=%s&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
 	resp, err := http.Get(url)
+	if resp.StatusCode != 200 {
+		panic(symbol+": error with http response code")
+	}
 	if err != nil {
-		log.Fatalf("error retrieving url: %s", err)
+		log.Fatalf(symbol+"error retrieving url: %s", err)
 	}
 	defer resp.Body.Close()
 	csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-            color.Print("@gerror reading csv: %s", err)
-		//log.Fatalf("error reading csv: %s", err)
+          log.Fatalf(symbol+" error reading csv: %s", err)
 	}
 	records = append(records[:0], records[0+1:]...)
 	return records, nil
