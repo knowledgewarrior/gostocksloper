@@ -88,7 +88,7 @@ func getStocks(symbol string) {
 	}
       defer resp.Body.Close()
 
-	os.Remove(symbol+".db")
+	//os.Remove(symbol+".db")
       db, err := sql.Open("sqlite3", symbol+".db")
 	if err != nil {
 		fmt.Println("error opening db")
@@ -154,7 +154,7 @@ func getSlope(symbol string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-                  fmt.Println(symbol,slope)
+                  //fmt.Println(symbol,slope)
 
                   fname := "Slopes.csv"
                   f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
@@ -186,6 +186,7 @@ func main(){
 		var gsf GetStocksFunc
 	 	gsf = getStocks
 	 	gsf(symbol)
+            os.Remove(symbol+".db")
 	}
 
 } // func main
