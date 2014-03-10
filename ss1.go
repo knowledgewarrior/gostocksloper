@@ -20,7 +20,7 @@ import (
 
 
 type GetStocksFunc func(string)
-type GetSlopeFunc func(string)
+type GetSlopesFunc func(string)
 
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
@@ -35,13 +35,13 @@ func readLines(path string) ([]string, error) {
     lines = append(lines, scanner.Text())
   }
   return lines, scanner.Err()
-}
+} //readlines
 
 func check(e error) {
     if e != nil {
         panic(e)
     }
-}
+} //check
 
 func getStocks(symbol string) {
     
@@ -61,7 +61,7 @@ func getStocks(symbol string) {
 	if resp.StatusCode != 200 {
 		fmt.Println(symbol+": error with http response code")
 		return
-	}
+} // getStocks
 
 	os.Remove(symbol+".db")
 		    db, err := sql.Open("sqlite3", symbol+".db")
@@ -99,17 +99,20 @@ func getStocks(symbol string) {
 			defer insert_stmt.Close()
 			_, err = insert_stmt.Exec(d,c)
 			tx.Commit()
+			
+			var gslf GetSlopesFunc
+	 		gslf = getSlope
+	 		gslf(symbol)
 		}
-
-		var gsf GetSlopeFunc
-		gsf = getSlope
-		gsf(symbol)
-
 } // getStocks
 
 func getSlope(symbol string) {
 	//get slope
 	ntd := 35.00
+	f, err := os.Create("Slopes.csv")
+	check(err)
+	w := bufio.NewWriter(f)
+
 	db, err := sql.Open("sqlite3", symbol+".db")
 	if err != nil {
 		fmt.Println("error opening db")
@@ -120,6 +123,7 @@ func getSlope(symbol string) {
 			fmt.Println("error with select")
 		}
 		defer rows.Close()
+
 		for rows.Next() {
 			var sumx float64
 			var sumy float64
@@ -133,18 +137,11 @@ func getSlope(symbol string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-            fmt.Println(symbol,slope)
-		    f, err := os.Create("Slopes.csv")
-		    check(err)
-			defer f.Close()
-			var data = []byte{}{
-				symbol,
-				",",
-				slope,
-			}
-			n2, err := f.Write(data)
-    		check(err)
-
+            fmt.Println(symbol,slope)            
+			fmt.Fprint(w, symbol+",")
+			fmt.Fprint(w, slope)
+			fmt.Fprint(w, "\n")
+			w.Flush()
 		}
 		rows.Close()
 } //getSlope
@@ -155,19 +152,11 @@ func main(){
   	if err != nil {
     	fmt.Println("readLines error reading")
   	}
-
-    for _, symbol := range symbols {
+	for _, symbol := range symbols {
 		var gsf GetStocksFunc
 	 	gsf = getStocks
 	 	gsf(symbol)
 	}
-	// if db exists, find slope
- //  	for _, symbol := range symbols {
-	// 	var gsf GetSlopeFunc
-	// 	gsf = getSlope
-	// 	gsf(symbol)
-	// }
-     
 } // func main
 
 
