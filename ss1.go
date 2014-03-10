@@ -61,22 +61,22 @@ func getStocks(symbol string) {
 	if resp.StatusCode != 200 {
 		fmt.Println(symbol+": error with http response code")
 		return
-} // getStocks
+	}
 
 	os.Remove(symbol+".db")
-		    db, err := sql.Open("sqlite3", symbol+".db")
-			if err != nil {
-				fmt.Println("error opening db")
-			}
-			defer db.Close()
-			_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
-		    if err != nil {
-		        fmt.Println("could not create table")
-		    }
-		    _, err = db.Exec("CREATE TABLE slopedata (id INTEGER NOT NULL PRIMARY KEY, slope FLOAT64, tradingdays INTEGER);")
-		    if err != nil {
-		        fmt.Println("could not create table")
-		    }
+    db, err := sql.Open("sqlite3", symbol+".db")
+	if err != nil {
+		fmt.Println("error opening db")
+	}
+	defer db.Close()
+	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
+    if err != nil {
+        fmt.Println("could not create table")
+    }
+    _, err = db.Exec("CREATE TABLE slopedata (id INTEGER NOT NULL PRIMARY KEY, slope FLOAT64, tradingdays INTEGER);")
+    if err != nil {
+        fmt.Println("could not create table")
+    }
 
 	defer resp.Body.Close()
 	
@@ -99,19 +99,18 @@ func getStocks(symbol string) {
 			defer insert_stmt.Close()
 			_, err = insert_stmt.Exec(d,c)
 			tx.Commit()
-			
-			var gslf GetSlopesFunc
-	 		gslf = getSlope
-	 		gslf(symbol)
 		}
+		
+	var gslf GetSlopesFunc
+	gslf = getSlope
+	gslf(symbol)
+
 } // getStocks
 
 func getSlope(symbol string) {
 	//get slope
 	ntd := 35.00
-	f, err := os.Create("Slopes.csv")
-	check(err)
-	w := bufio.NewWriter(f)
+	fname := "Slopes.csv"
 
 	db, err := sql.Open("sqlite3", symbol+".db")
 	if err != nil {
@@ -138,12 +137,20 @@ func getSlope(symbol string) {
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
             fmt.Println(symbol,slope)            
-			fmt.Fprint(w, symbol+",")
-			fmt.Fprint(w, slope)
-			fmt.Fprint(w, "\n")
-			w.Flush()
 		}
 		rows.Close()
+    	f, err := os.OpenFile(fname, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+    	check(err)
+    	var textout string
+    	fmt.Scanln(&textout)
+    	_, err = f.Write([]byte(textout))
+    	check(err)
+    	f.Close()
+
+		// fmt.Fprint(w, symbol+",")
+		// fmt.Fprint(w, slope)
+		// fmt.Fprint(w, "\n")
+		// io.WriteString(out, outLn+"\n")
 } //getSlope
 
 func main(){
@@ -157,6 +164,7 @@ func main(){
 	 	gsf = getStocks
 	 	gsf(symbol)
 	}
+	
 } // func main
 
 
