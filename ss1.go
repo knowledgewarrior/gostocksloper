@@ -170,7 +170,7 @@ func getSlope(symbol string) {
                   }()
                   fmt.Fprint(b, symbol+",")
                   fmt.Fprint(b, slope)
-                  fmt.Fprint(b, "\n"
+                  fmt.Fprint(b, "\n")
             } // for rows
             rows.Close()
 } //getSlope
