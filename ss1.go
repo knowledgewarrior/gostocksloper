@@ -38,6 +38,20 @@ func readLines(path string) ([]string, error) {
   return lines, scanner.Err()
 } //readlines
 
+func writeLines(lines []string, path string) error {
+  file, err := os.Create(path)
+  if err != nil {
+    return err
+  }
+  defer file.Close()
+
+  w := bufio.NewWriter(file)
+  for _, line := range lines {
+    fmt.Fprintln(w, line)
+  }
+  return w.Flush()
+}
+
 func check(e error) {
     if e != nil {
         panic(e)
@@ -140,23 +154,25 @@ func getSlope(symbol string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-            fmt.Println(symbol,slope)
-		}
-		rows.Close()
+                  //fmt.Println(symbol,slope)
 
-     //  fname := "Slopes.csv"
-    	// f, err := os.OpenFile(fname, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-    	// check(err)
-    	// var textout string
-    	// fmt.Scanln(&textout)
-    	// _, err = f.Write([]byte(textout))
-    	// check(err)
-    	// f.Close()
+                  os.Remove("Slopes.csv")
+                  fname := "Slopes.csv"
+                  f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+                  check(err)
+                  defer f.Close()
 
-		// fmt.Fprint(w, symbol+",")
-		// fmt.Fprint(w, slope)
-		// fmt.Fprint(w, "\n")
-		// io.WriteString(out, outLn+"\n")
+                  b := bufio.NewWriter(f)
+                  defer func() {
+                  if err = b.Flush(); err != nil {
+                        fmt.Println(err)
+                  }
+                  }()
+                  fmt.Fprint(b, symbol+",")
+                  fmt.Fprint(b, slope)
+                  fmt.Fprint(b, "\n"
+            } // for rows
+            rows.Close()
 } //getSlope
 
 func main(){
