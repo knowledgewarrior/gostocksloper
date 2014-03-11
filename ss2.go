@@ -55,7 +55,7 @@ func getStocks(symbol string) {
       nowmonth := (nmonth2 - 1)
  	nowday := tArray[2]
 
-  	p := time.Now().AddDate(0, 0, -60).Format("2006-01-02")
+  	p := time.Now().AddDate(0, 0, -501).Format("2006-01-02")
       pArray := strings.Split(p, "-")
       thenyear := pArray[0]
       tmonth := pArray[1]
@@ -82,10 +82,6 @@ func getStocks(symbol string) {
       if err != nil {
         //fmt.Println("could not create table")
       }
-     _, err = db.Exec("CREATE TABLE slopedata (id INTEGER NOT NULL PRIMARY KEY, slope FLOAT64, tradingdays INTEGER);")
-      if err != nil {
-          //fmt.Println("could not create table")
-      }
 
       csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
@@ -109,7 +105,7 @@ func getStocks(symbol string) {
 } // getStocks
 
 func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
-      if slope < 1.99 {
+      if (slope < 1.99) && (slope > -1.00) {
          fname := "Slopes.csv"
             f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
             check(err)
@@ -150,7 +146,7 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-                 //fmt.Println(symbol,slope)
+                 fmt.Println(symbol,slope)
                   go getSlope(symbol, ntd + 1.00, slope, ch)
             } // for rows
             rows.Close()
@@ -179,9 +175,9 @@ func main() {
             <-ch
       }
 
-      for _, symbol := range symbols {
-        os.Remove(symbol+".db")
-      }
+      // for _, symbol := range symbols {
+      //   os.Remove(symbol+".db")
+      // }
 } // func main
 
 
