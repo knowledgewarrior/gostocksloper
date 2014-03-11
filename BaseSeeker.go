@@ -55,7 +55,7 @@ func getStocks(symbol string) {
       nowmonth := (nmonth2 - 1)
  	nowday := tArray[2]
 
-  	p := time.Now().AddDate(0, 0, -501).Format("2006-01-02")
+  	p := time.Now().AddDate(0, 0, -725).Format("2006-01-02")
       pArray := strings.Split(p, "-")
       thenyear := pArray[0]
       tmonth := pArray[1]
@@ -105,7 +105,7 @@ func getStocks(symbol string) {
 } // getStocks
 
 func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
-      if (slope < 1.99) && (slope > -1.00) {
+      if (slope < 0.01) && (slope > -0.01) {
          fname := "Slopes.csv"
             f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
             check(err)
@@ -146,7 +146,7 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-                 //fmt.Println(symbol,slope)
+                  //fmt.Println(symbol,ntd,slope)
                   go getSlope(symbol, ntd + 1.00, slope, ch)
             } // for rows
             rows.Close()
@@ -155,9 +155,9 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 func main() {
 
       os.Remove("Slopes.csv")
+      os.RemoveAll("./db")
       os.Mkdir("./db", 0700)
-	symbols, err := readLines("testsymbols.txt")
-    //symbols, err := readLines("stocks-testing.txt")
+	symbols, err := readLines("symboltest.txt")
   	check(err)
 	for _, symbol := range symbols {
 		var gsf GetStocksFunc
@@ -176,7 +176,6 @@ func main() {
 
             <-ch
       }
-os.RemoveAll("db")
 } // func main
 
 
