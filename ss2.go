@@ -173,14 +173,15 @@ func main() {
                     //fmt.Println(err)
                     return
                 }
-
-            //fmt.Println(symbol+": db exists")
             ch := make(chan bool)
             getSlope(symbol, 120.00, 2.00, ch)
 
             <-ch
-            //os.Remove(symbol+".db")
-        }
+      }
+
+      for _, symbol := range symbols {
+        os.Remove(symbol+".db")
+      }
 } // func main
 
 
