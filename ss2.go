@@ -16,80 +16,11 @@ import (
 	"net/http"
 	"time"
 	"strings"
+      "strconv"
 )
 
-type CreateDBFunc func(string)
-type GetSlopeFunc func(string)
 
-func main() {
-    symbols, err := readLines("testsymbols.txt") // very small
-    //symbols, err := readLines("stocks-testing.txt") // 1649 symbols
-  	if err != nil {
-    	fmt.Println("readLines error reading: %s", err)
-  	}
-  	for _, symbol := range symbols {
-         var cdb CreateDBFunc
-	   cdb = createDB
-	   cdb(symbol)
-   }
-         for _, symbol := range symbols {
-	  	records, err := getYahooInfo(symbol)
-	  	if err != nil {
-	    	fmt.Println(symbol+": cannot get yahoo info")
-	  	}
-	  	  for _, record := range records {
-			d := record[0]
-		   	c := record[4]
-               // fmt.Println(d,c)
-		   	db, err := sql.Open("sqlite3", symbol+".db")
-				if err != nil {
-					fmt.Println(err)
-				}
-				defer db.Close()
-
-				tx, err := db.Begin()
-				if err != nil {
-					fmt.Println(err)
-				}
-				insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
-				if err != nil {
-					fmt.Println(err)
-				}
-				defer insert_stmt.Close()
-					_, err = insert_stmt.Exec(d,c)
-					if err != nil {
-						fmt.Println(err)
-					}
-				tx.Commit()
-		  }
-        }
-
-
- //  	for _, symbol := range symbols {
- //  		var gsf GetSlopeFunc
-	// 	gsf = getSlope
-	// 	gsf(symbol)
-	// }
-
-}
-
-func createDB(s string) {
-    //fmt.Printf("%s\n", s)
-    os.Remove(s+".db")
-    db, err := sql.Open("sqlite3", s+".db")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer db.Close()
-	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
-    if err != nil {
-        fmt.Println("could not create table:", err)
-    }
-    _, err = db.Exec("CREATE TABLE slopedata (id INTEGER NOT NULL PRIMARY KEY, slope FLOAT64, tradingdays INTEGER);")
-    if err != nil {
-        fmt.Println("could not create table:", err)
-    }
-}
+type GetStocksFunc func(string)
 
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
@@ -104,52 +35,104 @@ func readLines(path string) ([]string, error) {
     lines = append(lines, scanner.Text())
   }
   return lines, scanner.Err()
-}
+} //readlines
 
-func getYahooInfo(symbol string) ([][]string, error){
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
+} //check
 
-	t := time.Now().Format("2006-01-02")
+func getStocks(symbol string) {
+
+      t := time.Now().Format("2006-01-02")
 	tArray := strings.Split(t, "-")
 
  	nowyear := tArray[0]
- 	nowmonth := tArray[1]
+ 	nmonth := tArray[1]
+      nmonth2, err := strconv.Atoi(nmonth)
+      check(err)
+      nowmonth := (nmonth2 - 1)
  	nowday := tArray[2]
 
-  	thenyear := 2014
-  	thenmonth := 00
-  	thenday := 01
+  	p := time.Now().AddDate(0, 0, -501).Format("2006-01-02")
+      pArray := strings.Split(p, "-")
+      thenyear := pArray[0]
+      tmonth := pArray[1]
+      tmonth2, err := strconv.Atoi(tmonth)
+      check(err)
+      thenmonth := (tmonth2 - 1)
+      thenday := pArray[2]
+      //fmt.Println(thenyear, thenmonth, thenday, " - ", nowyear,nowmonth,nowday)
 
-	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%d&c=%d&d=%s&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
+	url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%s&c=%s&d=%d&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
 	resp, err := http.Get(url)
-	if resp.StatusCode != 200 {
-		break
+	if resp.StatusCode > 399 {
+		//fmt.Println(symbol+": not on yahoo finance")
+		return
 	}
+      defer resp.Body.Close()
+
+	db, err := sql.Open("sqlite3", symbol+".db")
 	if err != nil {
-		fmt.Println(symbol+"error retrieving url: %s", err)
+		//fmt.Println("error opening db")
 	}
-	defer resp.Body.Close()
-	csvReader := csv.NewReader(resp.Body)
+	defer db.Close()
+	_, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
+      if err != nil {
+        //fmt.Println("could not create table")
+      }
+
+      csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
-	if err != nil {
-          fmt.Println(symbol+" error reading csv: %s", err)
-	}
+	check(err)
 	records = append(records[:0], records[0+1:]...)
-	return records, nil
-}
+		for _, record := range records {
+			d := record[0]
+		   	c := record[4]
 
+			tx, err := db.Begin()
+				if err != nil {
+					//fmt.Println("error with db")
+				}
+			insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
 
-func getSlope(s string) {
-      ntd := 35.00
-	db, err := sql.Open("sqlite3", s+".db")
-	if err != nil {
-		fmt.Println(err)
-	}
+			defer insert_stmt.Close()
+			_, err = insert_stmt.Exec(d,c)
+			tx.Commit()
+		}
+
+} // getStocks
+
+func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
+      if (slope < 1.99) && (slope > -1.00) {
+         fname := "Slopes.csv"
+            f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+            check(err)
+            defer f.Close()
+
+            b := bufio.NewWriter(f)
+            defer func() {
+            if err = b.Flush(); err != nil {
+                  //fmt.Println(err)
+            }
+            }()
+            fmt.Fprint(b, symbol+",")
+            fmt.Fprint(b, slope)
+            fmt.Fprint(b, "\n")
+            ch <- true
+        return
+      }
+
+	db, err := sql.Open("sqlite3", symbol+".db")
+	check(err)
 	defer db.Close()
 	rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
 		if err != nil {
-			fmt.Println(err)
+			//fmt.Println("error with select")
 		}
 		defer rows.Close()
+
 		for rows.Next() {
 			var sumx float64
 			var sumy float64
@@ -163,7 +146,41 @@ func getSlope(s string) {
 			sumxsumx := sumx * sumx
 
 			slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-                  fmt.Println(s,slope)
-		}
-		rows.Close()
-}
+                 fmt.Println(symbol,slope)
+                  go getSlope(symbol, ntd + 1.00, slope, ch)
+            } // for rows
+            rows.Close()
+} //getSlope
+
+func main() {
+      os.Remove("Slopes.csv")
+	symbols, err := readLines("testsymbols.txt")
+    //symbols, err := readLines("stocks-testing.txt")
+  	check(err)
+	for _, symbol := range symbols {
+		var gsf GetStocksFunc
+	 	gsf = getStocks
+	 	gsf(symbol)
+      }
+
+      for _, symbol := range symbols {
+            _, err := os.Stat(symbol+".db")
+                if err != nil {
+                    //fmt.Println(err)
+                    return
+                }
+            ch := make(chan bool)
+            getSlope(symbol, 120.00, 2.00, ch)
+
+            <-ch
+      }
+
+      // for _, symbol := range symbols {
+      //   os.Remove(symbol+".db")
+      // }
+} // func main
+
+
+
+
+
