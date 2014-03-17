@@ -1,0 +1,15 @@
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal 0xa code=0x2 addr=0x20 pc=0x40b0ff3]
+
+goroutine 1 [running]:
+runtime.panic(0x4267b40, 0x449ae8d)
+	/usr/local/go/src/pkg/runtime/panic.c:266 +0x9a
+main.getStocks(0x15200690, 0x1)
+	/Users/jasonfowler/src/gostocksloper/BaseSeeker.go:90 +0x533
+main.main()
+	/Users/jasonfowler/src/gostocksloper/BaseSeeker.go:195 +0x17d
+
+goroutine 6 [syscall]:
+runtime.goexit()
+	/usr/local/go/src/pkg/runtime/proc.c:1394
+exit status 2

@@ -1,0 +1,15 @@
+http://ichart.finance.yahoo.com/table.csv?s=CSH.UN&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=KVF&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=DGIN&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=DGF&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=DGAS&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=DG&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=CPT&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=CPS&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALNY&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALL&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALKS&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALJ&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALG&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALF&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
+http://ichart.finance.yahoo.com/table.csv?s=ALE&a=2&b=16&c=2012&d=2&e=15&f=2014&g=d
