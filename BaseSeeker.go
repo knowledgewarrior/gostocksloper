@@ -186,20 +186,85 @@ func main() {
   check(err)
   defer logf.Close()
   log.SetOutput(logf)
-  symbols, err := readLines("symbols.txt")
+
+  symbols1, err := readLines("symbols1.txt")
   check(err)
-  for _, symbol := range symbols {
+  for _, symbol := range symbols1 {
     getStocks(symbol)
   }
 
-  for _, symbol := range symbols {
-    _, err := os.Stat("db/"+symbol+".db")
-    if err != nil {
-      return
-    }
-    ch := make(chan bool)
-    getSlope(symbol, 120.00, 2.00, ch)
-    <-ch
+  for _, symbol := range symbols1 {
+  _, err := os.Stat("db/"+symbol+".db")
+  if err != nil {
+    return
+  }
+  ch1 := make(chan bool)
+  getSlope(symbol, 120.00, 2.00, ch1)
+  <-ch1
+  }
+
+  symbols2, err := readLines("symbols2.txt")
+  check(err)
+  for _, symbol := range symbols2 {
+    getStocks(symbol)
+  }
+
+  for _, symbol := range symbols2 {
+  _, err := os.Stat("db/"+symbol+".db")
+  if err != nil {
+    return
+  }
+  ch2 := make(chan bool)
+  getSlope(symbol, 120.00, 2.00, ch2)
+  <-ch2
+  }
+
+  symbols3, err := readLines("symbols3.txt")
+  check(err)
+  for _, symbol := range symbols3 {
+    getStocks(symbol)
+  }
+
+  for _, symbol := range symbols3 {
+  _, err := os.Stat("db/"+symbol+".db")
+  if err != nil {
+    return
+  }
+  ch3 := make(chan bool)
+  getSlope(symbol, 120.00, 2.00, ch3)
+  <-ch3
+  }
+
+  symbols4, err := readLines("symbols4.txt")
+  check(err)
+  for _, symbol := range symbols4 {
+    getStocks(symbol)
+  }
+
+  for _, symbol := range symbols4 {
+  _, err := os.Stat("db/"+symbol+".db")
+  if err != nil {
+    return
+  }
+  ch4 := make(chan bool)
+  getSlope(symbol, 120.00, 2.00, ch4)
+  <-ch4
+  }
+
+  symbols5, err := readLines("symbols5.txt")
+  check(err)
+  for _, symbol := range symbols5 {
+    getStocks(symbol)
+  }
+
+  for _, symbol := range symbols5 {
+  _, err := os.Stat("db/"+symbol+".db")
+  if err != nil {
+    return
+  }
+  ch5 := make(chan bool)
+  getSlope(symbol, 120.00, 2.00, ch5)
+  <-ch5
   }
 
 } // func main
