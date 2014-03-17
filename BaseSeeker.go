@@ -51,7 +51,8 @@ func getStocks(symbol string) {
 
   nowyear := tArray[0]
   nmonth := tArray[1]
-  nmonth2 := strconv.Atoi(nmonth)
+  nmonth2, err := strconv.Atoi(nmonth)
+  if err != nil { log.Println(err) }
   nowmonth := (nmonth2 - 1)
   nowday := tArray[2]
 
@@ -59,7 +60,8 @@ func getStocks(symbol string) {
   pArray := strings.Split(p, "-")
   thenyear := pArray[0]
   tmonth := pArray[1]
-  tmonth2 := strconv.Atoi(tmonth)
+  tmonth2, err := strconv.Atoi(tmonth)
+  if err != nil { log.Println(err) }
   thenmonth := (tmonth2 - 1)
   thenday := pArray[2]
 
