@@ -15,7 +15,7 @@ import (
   "os"
   "io"
   //"io/ioutil"
-  "encoding/csv"
+  //"encoding/csv"
   "net/http"
   "time"
   "strings"
@@ -27,7 +27,7 @@ var ERROR *log.Logger
 
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
-  check(err)
+  if err != nil { log.Println(err) }
   defer file.Close()
 
   var lines []string
@@ -44,12 +44,6 @@ func Init(errorHandle io.Writer) {
   log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func check(e error) {
-    if e != nil {
-      log.Println(e)
-    }
-} //check
-
 func getStocks(symbol string) {
 
   t := time.Now().Format("2006-01-02")
@@ -57,8 +51,7 @@ func getStocks(symbol string) {
 
   nowyear := tArray[0]
   nmonth := tArray[1]
-  nmonth2, err := strconv.Atoi(nmonth)
-  check(err)
+  nmonth2 := strconv.Atoi(nmonth)
   nowmonth := (nmonth2 - 1)
   nowday := tArray[2]
 
@@ -66,15 +59,11 @@ func getStocks(symbol string) {
   pArray := strings.Split(p, "-")
   thenyear := pArray[0]
   tmonth := pArray[1]
-  tmonth2, err := strconv.Atoi(tmonth)
-  check(err)
+  tmonth2 := strconv.Atoi(tmonth)
   thenmonth := (tmonth2 - 1)
   thenday := pArray[2]
 
   url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%s&c=%s&d=%d&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
-  // resp, err := http.Get(url)
-  // check(err)
-  // defer response.Body.Close()
 
   transport := &httpclient.Transport{
     ConnectTimeout:        1*time.Second,
@@ -86,62 +75,66 @@ func getStocks(symbol string) {
   client := &http.Client{Transport: transport}
   req, _ := http.NewRequest("GET", url, nil)
   resp, err := client.Do(req)
-  check(err)
+  if err != nil { log.Println(err) }
   defer resp.Body.Close()
 
   if resp.StatusCode > 399 {
-    return
-  }
-  csvReader := csv.NewReader(resp.Body)
-  records, err := csvReader.ReadAll()
-  check(err)
-   // if not >120 lines, skip
-  lineCount := 0
-  for _ = range records {
-    lineCount += 1
-  }
-  if lineCount < 121 {
-    return
-  }
-
-  // if no data, skip - check closing price
-  for _, record := range records {
-    c := record[4]
-    if c == "0.00" {
-      return
-    }
-  }
-  // okay, good to go
-  records = append(records[:0], records[0+1:]...)
-  db, err := sql.Open("sqlite3", "db/"+symbol+".db")
-  check(err)
-  defer db.Close()
-  _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
-  check(err)
-
-  for _, record := range records {
-    d := record[0]
-    c := record[4]
-    tx, err := db.Begin()
-    check(err)
-    insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
-    check(err)
-    defer insert_stmt.Close()
-    _, err = insert_stmt.Exec(d,c)
-    check(err)
-    tx.Commit()
-    insert_stmt.Close()
-  }
-
-    db.Close()
     resp.Body.Close()
+    return
+  }
+  // csvReader := csv.NewReader(resp.Body)
+  // records, err := csvReader.ReadAll()
+  // if err != nil {
+  //    log.Println(err)
+  //  }
+  //  // if not >120 lines, skip
+  // lineCount := 0
+  // for _ = range records {
+  //   lineCount += 1
+  // }
+  // if lineCount < 121 {
+  //   return
+  // }
+
+  // // if no data, skip - check closing price
+  // for _, record := range records {
+  //   c := record[4]
+  //   if c == "0.00" {
+  //     return
+  //   }
+  // }
+  // // okay, good to go
+  // records = append(records[:0], records[0+1:]...)
+  // db, err := sql.Open("sqlite3", "db/"+symbol+".db")
+  // if err != nil { log.Println(err) }
+  // defer db.Close()
+  // _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
+  // if err != nil { log.Println(err) }
+
+  // for _, record := range records {
+  //   d := record[0]
+  //   c := record[4]
+  //   tx, err := db.Begin()
+  //   if err != nil { log.Println(err) }
+  //   insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
+  //   if err != nil { log.Println(err) }
+  //   defer insert_stmt.Close()
+  //   _, err = insert_stmt.Exec(d,c)
+  //   if err != nil { log.Println(err) }
+  //   tx.Commit()
+  //   insert_stmt.Close()
+  // }
+
+  //   db.Close()
+  resp.Body.Close()
+  transport.Close()
 } // getStocks
 
 func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
   if (slope < 0.01) && (slope > -0.01) {
   fname := "Slopes.csv"
   f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-  check(err)
+  if err != nil { log.Println(err) }
   defer f.Close()
 
   b := bufio.NewWriter(f)
@@ -159,10 +152,10 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 }
 
   db, err := sql.Open("sqlite3", "db/"+symbol+".db")
-  check(err)
+  if err != nil { log.Println(err) }
   defer db.Close()
   rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
-  check(err)
+  if err != nil { log.Println(err) }
   defer rows.Close()
   for rows.Next() {
     var sumx float64
@@ -188,19 +181,21 @@ func main() {
   os.RemoveAll("./db")
   os.Mkdir("./db", 0700)
   logf, err := os.OpenFile("baseseeker_log.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-  check(err)
+  if err != nil { fmt.Println(err) }
   defer logf.Close()
   log.SetOutput(logf)
 
   symbols, err := readLines("symbols.txt")
-  check(err)
+  if err != nil { log.Println(err) }
+
   for _, symbol := range symbols {
-
     getStocks(symbol)
+  }
 
+  for _, symbol := range symbols {
     _, err := os.Stat("db/"+symbol+".db")
     if err != nil {
-    return
+    break
     }
     ch1 := make(chan bool)
     getSlope(symbol, 120.00, 2.00, ch1)
