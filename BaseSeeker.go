@@ -14,8 +14,8 @@ import (
   "github.com/mreiferson/go-httpclient"
   "os"
   "io"
-  //"io/ioutil"
-  //"encoding/csv"
+  "math/rand"
+  "encoding/csv"
   "net/http"
   "time"
   "strings"
@@ -24,6 +24,15 @@ import (
 )
 
 var ERROR *log.Logger
+
+func getSymbols(file string) {
+  symbols, err := readLines(file)
+  if err != nil { log.Println(err) }
+
+  for _, symbol := range symbols {
+   getStocks(symbol)
+  }
+}
 
 func readLines(path string) ([]string, error) {
   file, err := os.Open(path)
@@ -69,91 +78,96 @@ func getStocks(symbol string) {
 
   transport := &httpclient.Transport{
     ConnectTimeout:        1*time.Second,
-    RequestTimeout:        10*time.Second,
-    ResponseHeaderTimeout: 5*time.Second,
+    RequestTimeout:        5*time.Second,
+    ResponseHeaderTimeout: 2*time.Second,
   }
   defer transport.Close()
 
   client := &http.Client{Transport: transport}
   req, _ := http.NewRequest("GET", url, nil)
   resp, err := client.Do(req)
-  if err != nil { log.Println(err) }
-  defer resp.Body.Close()
+      if err != nil {
+         log.Println(err)
+        return
+    }else {
+      defer resp.Body.Close()
 
-  if resp.StatusCode > 399 {
-    resp.Body.Close()
-    return
-  }
-  // csvReader := csv.NewReader(resp.Body)
-  // records, err := csvReader.ReadAll()
-  // if err != nil {
-  //    log.Println(err)
-  //  }
-  //  // if not >120 lines, skip
-  // lineCount := 0
-  // for _ = range records {
-  //   lineCount += 1
-  // }
-  // if lineCount < 121 {
-  //   return
-  // }
+      if resp.StatusCode > 399 {
+        resp.Body.Close()
+        return
+      }
 
-  // // if no data, skip - check closing price
-  // for _, record := range records {
-  //   c := record[4]
-  //   if c == "0.00" {
-  //     return
-  //   }
-  // }
-  // // okay, good to go
-  // records = append(records[:0], records[0+1:]...)
-  // db, err := sql.Open("sqlite3", "db/"+symbol+".db")
-  // if err != nil { log.Println(err) }
-  // defer db.Close()
-  // _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
-  // if err != nil { log.Println(err) }
+      csvReader := csv.NewReader(resp.Body)
+      records, err := csvReader.ReadAll()
+      if err != nil {
+        log.Println(err)
+        return
+      }
+       // if not >120 lines, skip
+      lineCount := 0
+      for _ = range records {
+        lineCount += 1
+      }
+      if lineCount < 121 {
+        return
+      }
 
-  // for _, record := range records {
-  //   d := record[0]
-  //   c := record[4]
-  //   tx, err := db.Begin()
-  //   if err != nil { log.Println(err) }
-  //   insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
-  //   if err != nil { log.Println(err) }
-  //   defer insert_stmt.Close()
-  //   _, err = insert_stmt.Exec(d,c)
-  //   if err != nil { log.Println(err) }
-  //   tx.Commit()
-  //   insert_stmt.Close()
-  // }
+      // if no data, skip - check closing price
+      for _, record := range records {
+        c := record[4]
+        if c == "0.00" {
+          return
+        }
+      }
 
-  //   db.Close()
-  resp.Body.Close()
-  transport.Close()
+    // // okay, good to go
+      records = append(records[:0], records[0+1:]...)
+      db, err := sql.Open("sqlite3", "db/"+symbol+".db")
+      if err != nil { log.Println(err) }
+      defer db.Close()
+      _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
+      if err != nil { log.Println(err) }
+
+      for _, record := range records {
+        d := record[0]
+        c := record[4]
+        tx, err := db.Begin()
+        if err != nil { log.Println(err) }
+        insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
+        if err != nil { log.Println(err) }
+        defer insert_stmt.Close()
+        _, err = insert_stmt.Exec(d,c)
+        if err != nil { log.Println(err) }
+        tx.Commit()
+        insert_stmt.Close()
+      }
+  amt := time.Duration(rand.Intn(250))
+  time.Sleep(time.Millisecond * amt)
+  } //else
 } // getStocks
 
 func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
   if (slope < 0.01) && (slope > -0.01) {
-  fname := "Slopes.csv"
-  f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-  if err != nil { log.Println(err) }
-  defer f.Close()
+    fname := "Slopes.csv"
+    f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+    if err != nil { log.Println(err) }
+    defer f.Close()
 
-  b := bufio.NewWriter(f)
-  defer func() {
-  if err = b.Flush(); err != nil {
-        //fmt.Println(err)
-  }
-  }()
-  slope := slope * -1
-  fmt.Fprint(b, symbol+",")
-  fmt.Fprint(b, slope)
-  fmt.Fprint(b, "\n")
-  ch <- true
-  return
+    b := bufio.NewWriter(f)
+    defer func() {
+    if err = b.Flush(); err != nil {
+          //fmt.Println(err)
+    }
+    }()
+    slope := slope * -1
+    fmt.Fprint(b, symbol+",")
+    fmt.Fprint(b, slope)
+    fmt.Fprint(b, "\n")
+    ch <- true
+    return
 }
 
-  db, err := sql.Open("sqlite3", "db/"+symbol+".db")
+  db, err := sql.Open("sqlite3", "db/"+symbol+"db")
   if err != nil { log.Println(err) }
   defer db.Close()
   rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
@@ -187,12 +201,26 @@ func main() {
   defer logf.Close()
   log.SetOutput(logf)
 
-  symbols, err := readLines("symbols.txt")
-  if err != nil { log.Println(err) }
-
-  for _, symbol := range symbols {
-    getStocks(symbol)
-  }
+getSymbols("symbols1.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols2.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols3.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols4.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols5.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols6.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols7.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols8.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols9.txt")
+time.Sleep(1800 * time.Second)
+getSymbols("symbols9.txt")
+time.Sleep(1800 * time.Second)
 
   for _, symbol := range symbols {
     _, err := os.Stat("db/"+symbol+".db")

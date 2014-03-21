@@ -59,12 +59,6 @@ func Get(url string) (chan *HttpResponse) {
   channel  := make(chan *HttpResponse)
   client   := &http.Client{}
   req, _ := http.NewRequest("GET", url, nil)
-  resp, _ := client.Do(req)
-  fmt.Println(resp.StatusCode)
-   if resp.StatusCode > 399 {
-    os.Exit(1)
-  }
-
 
   go func(){
       resp, _ := client.Do(req)
@@ -92,7 +86,7 @@ func getStocks(symbol string) {
   nowmonth := (nmonth2 - 1)
   nowday := tArray[2]
 
-  p := time.Now().AddDate(0, 0, -29).Format("2006-01-02")
+  p := time.Now().AddDate(0, 0, -729).Format("2006-01-02")
   pArray := strings.Split(p, "-")
   thenyear := pArray[0]
   tmonth := pArray[1]
@@ -102,13 +96,14 @@ func getStocks(symbol string) {
   thenday := pArray[2]
 
   url := fmt.Sprintf("http://ichart.finance.yahoo.com/table.csv?s=%s&a=%d&b=%s&c=%s&d=%d&e=%s&f=%s&g=d", symbol, thenmonth, thenday, thenyear, nowmonth, nowday, nowyear)
-  //fmt.Println(url)
-  channel := Get(url)
-  //resp := <-channel
-  _ = <-channel
-  //fmt.Println(string(resp.ByteStr))
+  fmt.Println(url)
+  // channel := Get(url)
+  // resp := <-channel
+  // fmt.Println(string(resp.ByteStr))
 
- 
+  // if resp.StatusCode > 399 {
+  //   return
+  // }
   // csvReader := csv.NewReader(resp.Body)
   // records, err := csvReader.ReadAll()
   // check(err)
