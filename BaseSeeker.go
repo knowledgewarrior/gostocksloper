@@ -222,6 +222,7 @@ time.Sleep(1800 * time.Second)
 getSymbols("symbols9.txt")
 time.Sleep(1800 * time.Second)
 
+symbols, err := readLines("symbols.txt")
   for _, symbol := range symbols {
     _, err := os.Stat("db/"+symbol+".db")
     if err != nil {
