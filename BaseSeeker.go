@@ -53,6 +53,18 @@ func Init(errorHandle io.Writer) {
   log.Ldate|log.Ltime|log.Lshortfile)
 }
 
+func walkFiles(location string) (chan string) {
+    chann := make(chan string)
+    go func(){
+        filepath.Walk(location, func(path string, _ os.FileInfo, _ error)(err error){
+            chann <- path
+            return
+        })
+        defer close(chann)
+    }()
+        return chann
+}
+
 func getStocks(symbol string) {
 
   t := time.Now().Format("2006-01-02")
@@ -122,10 +134,10 @@ func getStocks(symbol string) {
 
     // // okay, good to go
       records = append(records[:0], records[0+1:]...)
-      db, err := sql.Open("sqlite3", "db/"+symbol+".db")
+      db, err := sql.Open("sqlite3", "db/"+symbol)
       if err != nil { log.Println(err) }
       defer db.Close()
-      _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice INTEGER);")
+      _, err = db.Exec("CREATE TABLE stockhistory (id INTEGER NOT NULL PRIMARY KEY, ydate TEXT, closeprice FLOAT);")
       if err != nil { log.Println(err) }
 
       for _, record := range records {
@@ -133,7 +145,7 @@ func getStocks(symbol string) {
         c := record[4]
         tx, err := db.Begin()
         if err != nil { log.Println(err) }
-        insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?)")
+        insert_stmt, err := tx.Prepare("insert into stockhistory(ydate,closeprice) values(?,?);")
         if err != nil { log.Println(err) }
         defer insert_stmt.Close()
         _, err = insert_stmt.Exec(d,c)
@@ -159,25 +171,26 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
           //fmt.Println(err)
     }
     }()
-    slope := slope * -1
+    slope := slope * -1.00
     fmt.Fprint(b, symbol+",")
     fmt.Fprint(b, slope)
     fmt.Fprint(b, "\n")
     ch <- true
     return
-}
+  }
+  var sumx float64
+  var sumy float64
+  var sumxy float64
+  var sumxx float64
 
-  db, err := sql.Open("sqlite3", "db/"+symbol+"db")
+  db, err := sql.Open("sqlite3", "db/"+symbol)
   if err != nil { log.Println(err) }
   defer db.Close()
   rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
   if err != nil { log.Println(err) }
   defer rows.Close()
   for rows.Next() {
-    var sumx float64
-    var sumy float64
-    var sumxy float64
-    var sumxx float64
+    
     rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
     ntdsumxy := ntd * sumxy
@@ -185,9 +198,10 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
+
     go getSlope(symbol, ntd + 1.00, slope, ch)
+
   } // for rows
-  rows.Close()
 } //getSlope
 
 func main() {
@@ -201,36 +215,37 @@ func main() {
   defer logf.Close()
   log.SetOutput(logf)
 
-getSymbols("symbols1.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols2.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols3.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols4.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols5.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols6.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols7.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols8.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols9.txt")
-time.Sleep(1800 * time.Second)
-getSymbols("symbols9.txt")
-time.Sleep(1800 * time.Second)
+// test
+//  getSymbols("symbols-small.txt")
 
-symbols, err := readLines("symbols.txt")
-  for _, symbol := range symbols {
-    _, err := os.Stat("db/"+symbol+".db")
-    if err != nil {
-    break
-    }
+getSymbols("symbols1.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols2.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols3.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols4.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols5.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols6.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols7.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols8.txt")
+// time.Sleep(1800 * time.Second)
+// getSymbols("symbols9.txt")
+// time.Sleep(1800 * time.Second)
+//getSymbols("symbols10.txt")
+
+  dbdir := "db"
+  chann := walkFiles(dbdir)
+  for symbol := range chann {
+    if symbol == "db" { continue }
+    symbol := strings.TrimLeft(symbol, "db/")
+    //fmt.Println(symbol)
     ch1 := make(chan bool)
     getSlope(symbol, 120.00, 2.00, ch1)
     <-ch1
-  }
 
 } // func main
