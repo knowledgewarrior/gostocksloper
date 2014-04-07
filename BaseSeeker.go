@@ -16,6 +16,7 @@ import (
   "io"
   "math/rand"
   "encoding/csv"
+  "path/filepath"
   "net/http"
   "time"
   "strings"
@@ -158,8 +159,9 @@ func getStocks(symbol string) {
   } //else
 } // getStocks
 
-func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
-  if (slope < 0.01) && (slope > -0.01) {
+func getSlope(symbol string, ntd float64, slope float64) {
+  if (slope < 0.001) && (slope > -0.001) {
+    
     fname := "Slopes.csv"
     f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
     if err != nil { log.Println(err) }
@@ -167,15 +169,15 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 
     b := bufio.NewWriter(f)
     defer func() {
-    if err = b.Flush(); err != nil {
-          //fmt.Println(err)
-    }
+      if err = b.Flush(); err != nil { log.Println(err) }
     }()
     slope := slope * -1.00
     fmt.Fprint(b, symbol+",")
     fmt.Fprint(b, slope)
+    fmt.Fprint(b, ",")
+    fmt.Fprint(b, ntd)
     fmt.Fprint(b, "\n")
-    ch <- true
+    //ch <- true
     return
   }
   var sumx float64
@@ -198,8 +200,7 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-
-    go getSlope(symbol, ntd + 1.00, slope, ch)
+    go getSlope(symbol, ntd + 1.00, slope)
 
   } // for rows
 } //getSlope
@@ -215,37 +216,32 @@ func main() {
   defer logf.Close()
   log.SetOutput(logf)
 
-// test
-//  getSymbols("symbols-small.txt")
-
-getSymbols("symbols1.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols2.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols3.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols4.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols5.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols6.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols7.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols8.txt")
-// time.Sleep(1800 * time.Second)
-// getSymbols("symbols9.txt")
-// time.Sleep(1800 * time.Second)
-//getSymbols("symbols10.txt")
+  getSymbols("symbols1.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols2.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols3.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols4.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols5.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols6.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols7.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols8.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols9.txt")
+  time.Sleep(900 * time.Second)
+  getSymbols("symbols10.txt")
+  time.Sleep(120 * time.Second)
 
   dbdir := "db"
-  chann := walkFiles(dbdir)
+  chann := GoWalk(dbdir)
   for symbol := range chann {
     if symbol == "db" { continue }
     symbol := strings.TrimLeft(symbol, "db/")
-    //fmt.Println(symbol)
-    ch1 := make(chan bool)
-    getSlope(symbol, 120.00, 2.00, ch1)
-    <-ch1
-
+    getSlope(symbol, 120.00, 1.00)
+  }
 } // func main
