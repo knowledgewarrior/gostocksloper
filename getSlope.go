@@ -35,7 +35,7 @@ func Init(errorHandle io.Writer) {
 
 func getSlope(symbol string, ntd float64, slope float64) {
   if (slope < 0.001) && (slope > -0.001) {
-    
+
     fname := "Slopes.csv"
     f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
     if err != nil { log.Println(err) }
@@ -66,7 +66,7 @@ func getSlope(symbol string, ntd float64, slope float64) {
   if err != nil { log.Println(err) }
   defer rows.Close()
   for rows.Next() {
-    
+
     rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
     ntdsumxy := ntd * sumxy
@@ -74,6 +74,7 @@ func getSlope(symbol string, ntd float64, slope float64) {
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
+    time.Sleep(1 * time.Second)
     go getSlope(symbol, ntd + 1.00, slope)
 
   } // for rows
