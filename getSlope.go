@@ -33,8 +33,10 @@ func Init(errorHandle io.Writer) {
   log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
-  if (slope < 0.01) && (slope > -0.01) {
+//func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
+  func getSlope(symbol string, ntd float64, slope float64) {
+  if (slope < 0.001) && (slope > -0.001) {
+    
     fname := "Slopes.csv"
     f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
     if err != nil { log.Println(err) }
@@ -42,15 +44,15 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
 
     b := bufio.NewWriter(f)
     defer func() {
-    if err = b.Flush(); err != nil {
-          //fmt.Println(err)
-    }
+      if err = b.Flush(); err != nil { log.Println(err) }
     }()
     slope := slope * -1.00
     fmt.Fprint(b, symbol+",")
     fmt.Fprint(b, slope)
+    fmt.Fprint(b, ",")
+    fmt.Fprint(b, ntd)
     fmt.Fprint(b, "\n")
-    ch <- true
+    //ch <- true
     return
   }
   var sumx float64
@@ -73,8 +75,7 @@ func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-
-    go getSlope(symbol, ntd + 1.00, slope, ch)
+    go getSlope(symbol, ntd + 1.00, slope)
 
   } // for rows
 } //getSlope
@@ -95,8 +96,6 @@ func main() {
   Init(os.Stderr)
   os.Remove("Slopes.csv")
   os.Remove("baseseeker_log.txt")
-  //os.RemoveAll("./db")
-  //os.Mkdir("./db", 0700)
   logf, err := os.OpenFile("baseseeker_log.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
   if err != nil { fmt.Println(err) }
   defer logf.Close()
@@ -108,9 +107,7 @@ func main() {
     if symbol == "db" { continue }
     symbol := strings.TrimLeft(symbol, "db/")
     fmt.Println(symbol)
-    ch1 := make(chan bool)
-    getSlope(symbol, 120.00, 2.00, ch1)
-    <-ch1
+    getSlope(symbol, 120.00, 1.00)
   }
 
 
