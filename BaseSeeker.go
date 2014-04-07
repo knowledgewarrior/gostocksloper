@@ -238,7 +238,7 @@ func main() {
   time.Sleep(120 * time.Second)
 
   dbdir := "db"
-  chann := GoWalk(dbdir)
+  chann := walkFiles(dbdir)
   for symbol := range chann {
     if symbol == "db" { continue }
     symbol := strings.TrimLeft(symbol, "db/")

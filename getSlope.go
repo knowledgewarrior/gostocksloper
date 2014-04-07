@@ -33,8 +33,7 @@ func Init(errorHandle io.Writer) {
   log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-//func getSlope(symbol string, ntd float64, slope float64, ch chan bool) {
-  func getSlope(symbol string, ntd float64, slope float64) {
+func getSlope(symbol string, ntd float64, slope float64) {
   if (slope < 0.001) && (slope > -0.001) {
     
     fname := "Slopes.csv"
@@ -80,7 +79,7 @@ func Init(errorHandle io.Writer) {
   } // for rows
 } //getSlope
 
-func GoWalk(location string) (chan string) {
+func walkFiles(location string) (chan string) {
     chann := make(chan string)
     go func(){
         filepath.Walk(location, func(path string, _ os.FileInfo, _ error)(err error){
@@ -102,11 +101,10 @@ func main() {
   log.SetOutput(logf)
 
 	dbdir := "db"
-  chann := GoWalk(dbdir)
+  chann := walkFiles(dbdir)
   for symbol := range chann {
     if symbol == "db" { continue }
     symbol := strings.TrimLeft(symbol, "db/")
-    fmt.Println(symbol)
     getSlope(symbol, 120.00, 1.00)
   }
 
