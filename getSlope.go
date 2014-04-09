@@ -9,8 +9,9 @@ import (
   "os"
   "io"
   "log"
-   "time"
+   "sync"
   "strings"
+  "strconv"
 )
 
 var ERROR *log.Logger
@@ -37,7 +38,7 @@ func Init(errorHandle io.Writer) {
 func getSlope(symbol string, ntd float64, slope float64) {
   if (slope < 0.001) && (slope > -0.001) {
 
-    fname := "Slopes.csv"
+  	fname := "Slopes.csv"
     f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
     if err != nil { log.Println(err) }
     defer f.Close()
@@ -47,26 +48,31 @@ func getSlope(symbol string, ntd float64, slope float64) {
       if err = b.Flush(); err != nil { log.Println(err) }
     }()
     slope := slope * -1.00
-    fmt.Fprint(b, symbol+",")
-    fmt.Fprint(b, slope)
+    fmt.Fprint(b, symbol)
     fmt.Fprint(b, ",")
-    fmt.Fprint(b, ntd)
+    strconv.FormatFloat(slope, 'f', 32, 64)
+    fmt.Fprint(b, slope)
     fmt.Fprint(b, "\n")
-    //ch <- true
+
     return
   }
-  var sumx float64
-  var sumy float64
-  var sumxy float64
-  var sumxx float64
+
+  var Lock sync.Mutex
 
   db, err := sql.Open("sqlite3", "db/"+symbol)
   if err != nil { log.Println(err) }
   defer db.Close()
+
+  Lock.Lock()
   rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
   if err != nil { log.Println(err) }
   defer rows.Close()
   for rows.Next() {
+
+    var sumx float64
+    var sumy float64
+    var sumxy float64
+    var sumxx float64
 
     rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
@@ -75,10 +81,11 @@ func getSlope(symbol string, ntd float64, slope float64) {
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
-    time.Sleep(1 * time.Second)
+
     go getSlope(symbol, ntd + 1.00, slope)
 
   } // for rows
+  Lock.Unlock()
 } //getSlope
 
 func walkFiles(location string) (chan string) {
@@ -102,14 +109,17 @@ func main() {
   defer logf.Close()
   log.SetOutput(logf)
 
+
+
 	dbdir := "db"
   chann := walkFiles(dbdir)
   for symbol := range chann {
     if symbol == "db" { continue }
     symbol := strings.TrimLeft(symbol, "db/")
+
     getSlope(symbol, 120.00, 1.00)
+
   }
 
-
-
 } // func main
+
