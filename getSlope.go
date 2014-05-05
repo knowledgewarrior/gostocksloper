@@ -9,7 +9,6 @@ import (
   "os"
   "io"
   "log"
-   "sync"
   "strings"
   "strconv"
 )
@@ -57,24 +56,24 @@ func getSlope(symbol string, ntd float64, slope float64) {
     return
   }
 
-  var Lock sync.Mutex
-
   db, err := sql.Open("sqlite3", "db/"+symbol)
   if err != nil { log.Println(err) }
   defer db.Close()
 
-  Lock.Lock()
-  rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, closeprice from stockhistory order by ydate desc limit ?);", ntd)
+  var sumx float64
+  var sumy float64
+  var sumxy float64
+  var sumxx float64
+
+  stmt, err := db.Prepare("select sum(id) as sumx, sum(closeprice) as sumy, " +
+  "sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, " +
+  "closeprice from stockhistory order by ydate desc limit ?);")
+  if err != nil { log.Println(err) }
+  defer stmt.Close()
+  rows, err := stmt.Query(ntd)
   if err != nil { log.Println(err) }
   defer rows.Close()
   for rows.Next() {
-
-    var sumx float64
-    var sumy float64
-    var sumxy float64
-    var sumxx float64
-
-    rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
     ntdsumxy := ntd * sumxy
     sumxsumy := sumx * sumy
@@ -83,9 +82,7 @@ func getSlope(symbol string, ntd float64, slope float64) {
     slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
 
     go getSlope(symbol, ntd + 1.00, slope)
-
-  } // for rows
-  Lock.Unlock()
+  } // for rows next
 } //getSlope
 
 func walkFiles(location string) (chan string) {
@@ -109,17 +106,14 @@ func main() {
   defer logf.Close()
   log.SetOutput(logf)
 
-
-
 	dbdir := "db"
   chann := walkFiles(dbdir)
-  for symbol := range chann {
-    if symbol == "db" { continue }
-    symbol := strings.TrimLeft(symbol, "db/")
+  for symbols := range chann {
+    if symbols == "db" { continue }
+    symbol := strings.TrimLeft(symbols, "db/")
 
     getSlope(symbol, 120.00, 1.00)
 
   }
 
 } // func main
-
