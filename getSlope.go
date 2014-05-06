@@ -34,55 +34,41 @@ func Init(errorHandle io.Writer) {
   log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func getSlope(symbol string, ntd float64, slope float64) {
-  if (slope < 0.001) && (slope > -0.001) {
-
-  	fname := "Slopes.csv"
-    f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-    if err != nil { log.Println(err) }
-    defer f.Close()
-
-    b := bufio.NewWriter(f)
-    defer func() {
-      if err = b.Flush(); err != nil { log.Println(err) }
-    }()
-    slope := slope * -1.00
-    fmt.Fprint(b, symbol)
-    fmt.Fprint(b, ",")
-    strconv.FormatFloat(slope, 'f', 32, 64)
-    fmt.Fprint(b, slope)
-    fmt.Fprint(b, "\n")
-
-    return
-  }
-
-  db, err := sql.Open("sqlite3", "db/"+symbol)
-  if err != nil { log.Println(err) }
-  defer db.Close()
+func getSlope(symbol string, ntd float64, slope float64) (float64){
 
   var sumx float64
   var sumy float64
   var sumxy float64
   var sumxx float64
 
-  stmt, err := db.Prepare("select sum(id) as sumx, sum(closeprice) as sumy, " +
-  "sum(id * closeprice) as sumxy, sum(id * id) as sumxx from(select id, " +
-  "closeprice from stockhistory order by ydate desc limit ?);")
+  db, err := sql.Open("sqlite3", "db/"+symbol)
   if err != nil { log.Println(err) }
-  defer stmt.Close()
-  rows, err := stmt.Query(ntd)
+  defer db.Close()
+
+  rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, " +
+  "sum(id * closeprice) as sumxy, sum(id * id) as sumxx" +
+  "from(select id,closeprice from stockhistory" +
+  "order by ydate desc limit ?);", ntd)
   if err != nil { log.Println(err) }
+
   defer rows.Close()
+
   for rows.Next() {
+    err := rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
+    if err != nil { log.Println(err) }
 
     ntdsumxy := ntd * sumxy
     sumxsumy := sumx * sumy
     ntdsumxx := ntd * sumxx
     sumxsumx := sumx * sumx
-    slope := (ntdsumxy - sumxsumy) / (ntdsumxx - sumxsumx)
+    p1 := ntdsumxy - sumxsumy
+    p2 := ntdsumxx - sumxsumx
+    slope := p1 / p2
 
-    go getSlope(symbol, ntd + 1.00, slope)
   } // for rows next
+
+  return slope
+
 } //getSlope
 
 func walkFiles(location string) (chan string) {
@@ -112,7 +98,31 @@ func main() {
     if symbols == "db" { continue }
     symbol := strings.TrimLeft(symbols, "db/")
 
+    var ntd float64
+    var slope float64
     getSlope(symbol, 120.00, 1.00)
+
+    if (slope < 0.001) && (slope > -0.001) {
+      fname := "Slopes.csv"
+      f, err := os.OpenFile(fname, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+      if err != nil { log.Println(err) }
+      defer f.Close()
+      b := bufio.NewWriter(f)
+      defer func() {
+        if err = b.Flush(); err != nil { log.Println(err) }
+      }()
+      slope := slope * -1.00
+      fmt.Fprint(b, symbol)
+      fmt.Fprint(b, ",")
+      strconv.FormatFloat(slope, 'f', 32, 64)
+      fmt.Fprint(b, slope)
+      fmt.Fprint(b, "\n")
+    }else {
+      ntd++
+      getSlope(symbol, ntd, 1.00)
+    }
+
+
 
   }
 
