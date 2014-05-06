@@ -45,17 +45,13 @@ func getSlope(symbol string, ntd float64, slope float64) (float64){
   if err != nil { log.Println(err) }
   defer db.Close()
 
-  rows, err := db.Query("select sum(id) as sumx, sum(closeprice) as sumy, " +
+  rows := db.QueryRow("select sum(id) as sumx, sum(closeprice) as sumy, " +
   "sum(id * closeprice) as sumxy, sum(id * id) as sumxx" +
   "from(select id,closeprice from stockhistory" +
   "order by ydate desc limit ?);", ntd)
   if err != nil { log.Println(err) }
 
-  defer rows.Close()
-
-  for rows.Next() {
-    err := rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
-    if err != nil { log.Println(err) }
+    rows.Scan(&sumx, &sumy, &sumxy, &sumxx)
 
     ntdsumxy := ntd * sumxy
     sumxsumy := sumx * sumy
@@ -65,10 +61,7 @@ func getSlope(symbol string, ntd float64, slope float64) (float64){
     p2 := ntdsumxx - sumxsumx
     slope := p1 / p2
 
-  } // for rows next
-
   return slope
-
 } //getSlope
 
 func walkFiles(location string) (chan string) {
@@ -100,7 +93,7 @@ func main() {
 
     var ntd float64
     var slope float64
-    getSlope(symbol, 120.00, 1.00)
+    slope = getSlope(symbol, 120.00, 1.00)
 
     if (slope < 0.001) && (slope > -0.001) {
       fname := "Slopes.csv"
@@ -118,8 +111,7 @@ func main() {
       fmt.Fprint(b, slope)
       fmt.Fprint(b, "\n")
     }else {
-      ntd++
-      getSlope(symbol, ntd, 1.00)
+      getSlope(symbol, ntd + 1.00, 1.00)
     }
 
 
